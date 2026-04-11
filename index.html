@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex Clone</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="product-mark">C</div>
+          <div class="product-copy">
+            <strong>Codex</strong>
+            <span>Local workspace</span>
+          </div>
+        </div>
+        <div class="topbar-center">
+          <button class="topbar-pill active">Agent</button>
+          <button class="topbar-pill">Editor</button>
+          <button class="topbar-pill">Changes</button>
+        </div>
+        <div class="topbar-right">
+          <span class="topbar-status">workspace-write</span>
+          <span class="topbar-status live">online</span>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="sidebar">
+          <section class="sidebar-section">
+            <div class="sidebar-label">Threads</div>
+            <button class="thread-item active">
+              <strong>Build a codex clone</strong>
+              <span>Current session</span>
+            </button>
+            <button class="thread-item">
+              <strong>Patch terminal behavior</strong>
+              <span>Earlier today</span>
+            </button>
+            <button class="thread-item">
+              <strong>Review UI shell</strong>
+              <span>Yesterday</span>
+            </button>
+          </section>
+
+          <section class="sidebar-section">
+            <div class="sidebar-label">Workspace</div>
+            <ul class="meta-list">
+              <li><span>Root</span><strong>codex-clone</strong></li>
+              <li><span>Mode</span><strong>Default</strong></li>
+              <li><span>Files</span><strong>4 tracked</strong></li>
+            </ul>
+          </section>
+        </aside>
+
+        <main class="chat-column">
+          <section class="chat-header">
+            <div>
+              <h1>Build a codex clone</h1>
+              <p>Chat-first coding session with a plan rail and terminal output.</p>
+            </div>
+            <div class="header-badges">
+              <span class="badge">model: mock-codex</span>
+              <span class="badge">approval: on-request</span>
+            </div>
+          </section>
+
+          <section id="chatFeed" class="chat-feed"></section>
+
+          <form id="composer" class="composer">
+            <textarea
+              id="promptInput"
+              rows="3"
+              placeholder="Message Codex…"
+            ></textarea>
+            <div class="composer-bar">
+              <div class="composer-hints">
+                <span>`/plan` syncs the plan rail</span>
+                <span>`/fix` simulates an edit</span>
+              </div>
+              <button type="submit" class="send-button">Send</button>
+            </div>
+          </form>
+        </main>
+
+        <aside class="inspector">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Plan</h2>
+              <button id="shufflePlan" class="panel-button">Refresh</button>
+            </div>
+            <ul id="planList" class="plan-list"></ul>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Terminal</h2>
+              <button id="runCommand" class="panel-button">Run</button>
+            </div>
+            <div id="terminalOutput" class="terminal-output"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Activity</h2>
+              <span class="panel-meta">live</span>
+            </div>
+            <div id="activityFeed" class="activity-feed"></div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <template id="messageTemplate">
+      <article class="message">
+        <div class="message-avatar"></div>
+        <div class="message-content">
+          <div class="message-meta">
+            <span class="author"></span>
+            <time class="timestamp"></time>
+          </div>
+          <p class="message-body"></p>
+        </div>
+      </article>
+    </template>
+
+    <template id="terminalTemplate">
+      <div class="terminal-line">
+        <span class="terminal-prefix"></span>
+        <span class="terminal-text"></span>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
