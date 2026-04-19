@@ -62,6 +62,7 @@ const composer = document.querySelector("#composer");
 const promptInput = document.querySelector("#promptInput");
 const runCommandButton = document.querySelector("#runCommand");
 const shufflePlanButton = document.querySelector("#shufflePlan");
+const themeToggleButton = document.querySelector("#themeToggle");
 
 const messageTemplate = document.querySelector("#messageTemplate");
 const terminalTemplate = document.querySelector("#terminalTemplate");
@@ -225,6 +226,37 @@ runCommandButton.addEventListener("click", () => {
 });
 
 shufflePlanButton.addEventListener("click", syncPlan);
+
+function setTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem("codex-theme", next);
+  } catch (_) {}
+  if (themeToggleButton) {
+    themeToggleButton.setAttribute(
+      "aria-label",
+      next === "dark" ? "Switch to light theme" : "Switch to dark theme"
+    );
+    themeToggleButton.setAttribute(
+      "title",
+      next === "dark" ? "Switch to light theme" : "Switch to dark theme"
+    );
+  }
+}
+
+setTheme(document.documentElement.dataset.theme || "light");
+
+if (themeToggleButton) {
+  themeToggleButton.addEventListener("click", () => {
+    const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    setTheme(current === "dark" ? "light" : "dark");
+    addActivity(
+      "Theme changed",
+      `Switched to ${document.documentElement.dataset.theme} mode.`
+    );
+  });
+}
 
 renderMessages();
 renderPlan();
