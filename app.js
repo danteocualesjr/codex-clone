@@ -70,6 +70,10 @@ const runCommandButton = document.querySelector("#runCommand");
 const shufflePlanButton = document.querySelector("#shufflePlan");
 const themeToggleButton = document.querySelector("#themeToggle");
 const newThreadButton = document.querySelector("#newThread");
+const jumpToLatestButton = document.querySelector("#jumpToLatest");
+const jumpCountEl = jumpToLatestButton
+  ? jumpToLatestButton.querySelector(".jump-count")
+  : null;
 
 const messageTemplate = document.querySelector("#messageTemplate");
 const terminalTemplate = document.querySelector("#terminalTemplate");
@@ -182,7 +186,54 @@ function retryAt(index) {
   simulateAgentReply(userPrompt);
 }
 
-function renderMessages() {
+let unreadCount = 0;
+const AT_BOTTOM_THRESHOLD = 40;
+
+function isAtBottom() {
+  return (
+    chatFeed.scrollHeight - chatFeed.scrollTop - chatFeed.clientHeight <
+    AT_BOTTOM_THRESHOLD
+  );
+}
+
+function scrollToBottom(smooth) {
+  chatFeed.scrollTo({
+    top: chatFeed.scrollHeight,
+    behavior: smooth ? "smooth" : "auto",
+  });
+}
+
+function updateJumpPill() {
+  if (!jumpToLatestButton) return;
+  const showPill = !isAtBottom() && state.messages.length > 0;
+  if (showPill) {
+    jumpToLatestButton.hidden = false;
+    requestAnimationFrame(() =>
+      jumpToLatestButton.classList.add("is-visible")
+    );
+  } else {
+    jumpToLatestButton.classList.remove("is-visible");
+    setTimeout(() => {
+      if (!jumpToLatestButton.classList.contains("is-visible")) {
+        jumpToLatestButton.hidden = true;
+      }
+    }, 200);
+  }
+
+  if (jumpCountEl) {
+    if (unreadCount > 0) {
+      jumpCountEl.hidden = false;
+      jumpCountEl.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+    } else {
+      jumpCountEl.hidden = true;
+    }
+  }
+}
+
+function renderMessages(options) {
+  const opts = options || {};
+  const wasAtBottom = isAtBottom();
+  const prevScrollTop = chatFeed.scrollTop;
   chatFeed.innerHTML = "";
 
   state.messages.forEach((message, index) => {
@@ -207,7 +258,14 @@ function renderMessages() {
     chatFeed.appendChild(node);
   });
 
-  chatFeed.scrollTop = chatFeed.scrollHeight;
+  if (opts.forceScroll || wasAtBottom) {
+    scrollToBottom(false);
+    unreadCount = 0;
+  } else {
+    chatFeed.scrollTop = prevScrollTop;
+  }
+
+  updateJumpPill();
 }
 
 function refreshRelativeTimes() {
@@ -267,12 +325,17 @@ function renderActivity() {
 
 function addUserMessage(body) {
   state.messages.push({ role: "user", body, at: Date.now() });
-  renderMessages();
+  unreadCount = 0;
+  renderMessages({ forceScroll: true });
   saveState();
 }
 
 function addAssistantMessage(body) {
+  const wasAtBottom = isAtBottom();
   state.messages.push({ role: "assistant", body, at: Date.now() });
+  if (!wasAtBottom) {
+    unreadCount += 1;
+  }
   renderMessages();
   saveState();
 }
@@ -419,6 +482,21 @@ if (newThreadButton) {
   newThreadButton.addEventListener("click", newThread);
 }
 
+chatFeed.addEventListener("scroll", () => {
+  if (isAtBottom()) {
+    unreadCount = 0;
+  }
+  updateJumpPill();
+});
+
+if (jumpToLatestButton) {
+  jumpToLatestButton.addEventListener("click", () => {
+    unreadCount = 0;
+    scrollToBottom(true);
+    updateJumpPill();
+  });
+}
+
 function setTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = next;
@@ -450,8 +528,9 @@ if (themeToggleButton) {
   });
 }
 
-renderMessages();
+renderMessages({ forceScroll: true });
 renderPlan();
 renderTerminal();
 renderActivity();
 autoGrowPrompt();
+updateJumpPill();

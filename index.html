@@ -104,7 +104,22 @@
             </div>
           </section>
 
-          <section id="chatFeed" class="chat-feed"></section>
+          <div class="chat-feed-wrap">
+            <section id="chatFeed" class="chat-feed"></section>
+            <button
+              id="jumpToLatest"
+              class="jump-to-latest"
+              type="button"
+              aria-label="Jump to latest message"
+              hidden
+            >
+              <span class="jump-count" hidden></span>
+              <span class="jump-label">Jump to latest</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
 
           <form id="composer" class="composer">
             <textarea

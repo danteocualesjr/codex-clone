@@ -338,7 +338,7 @@ textarea {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--bg);
 }
 
@@ -378,13 +378,88 @@ textarea {
   font-size: 12px;
 }
 
+.chat-feed-wrap {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .chat-feed {
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   padding: 20px 28px;
   display: grid;
   gap: 12px;
   align-content: start;
+}
+
+.jump-to-latest {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%) translateY(6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.12s ease;
+  z-index: 2;
+}
+
+:root[data-theme="dark"] .jump-to-latest {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.jump-to-latest[hidden] {
+  display: none;
+}
+
+.jump-to-latest.is-visible {
+  opacity: 1;
+  transform: translateX(-50%);
+}
+
+.jump-to-latest:hover {
+  background: var(--bg-soft);
+}
+
+.jump-to-latest svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jump-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jump-count[hidden] {
+  display: none;
 }
 
 .message {
