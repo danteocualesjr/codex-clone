@@ -125,20 +125,102 @@ function formatTime(at) {
   });
 }
 
+function relativeTime(at) {
+  if (!at) return "just now";
+  const diffMs = Date.now() - at;
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 45) return "just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return new Date(at).toLocaleDateString();
+}
+
+function copyMessage(index, button) {
+  const message = state.messages[index];
+  if (!message) return;
+  const done = () => {
+    const label = button.querySelector("span");
+    const original = label ? label.textContent : "Copy";
+    if (label) label.textContent = "Copied";
+    button.classList.add("is-success");
+    setTimeout(() => {
+      if (label) label.textContent = original;
+      button.classList.remove("is-success");
+    }, 1200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(message.body).then(done, done);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = message.body;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (_) {}
+    document.body.removeChild(ta);
+    done();
+  }
+}
+
+function retryAt(index) {
+  let userPrompt = null;
+  for (let i = index - 1; i >= 0; i--) {
+    if (state.messages[i].role === "user") {
+      userPrompt = state.messages[i].body;
+      break;
+    }
+  }
+  if (!userPrompt) return;
+  addActivity("Retry", "Re-ran the previous user prompt.");
+  simulateAgentReply(userPrompt);
+}
+
 function renderMessages() {
   chatFeed.innerHTML = "";
 
-  state.messages.forEach((message) => {
+  state.messages.forEach((message, index) => {
     const node = messageTemplate.content.firstElementChild.cloneNode(true);
     node.classList.add(message.role);
     node.querySelector(".author").textContent = message.role === "user" ? "You" : "Codex";
-    node.querySelector(".timestamp").textContent = formatTime(message.at);
+    const timeEl = node.querySelector(".timestamp");
+    timeEl.textContent = relativeTime(message.at);
+    timeEl.title = formatTime(message.at);
+    if (message.at) timeEl.setAttribute("datetime", new Date(message.at).toISOString());
     node.querySelector(".message-body").textContent = message.body;
+
+    const copyBtn = node.querySelector(".copy-action");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", () => copyMessage(index, copyBtn));
+    }
+    const retryBtn = node.querySelector(".retry-action");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", () => retryAt(index));
+    }
+
     chatFeed.appendChild(node);
   });
 
   chatFeed.scrollTop = chatFeed.scrollHeight;
 }
+
+function refreshRelativeTimes() {
+  const nodes = chatFeed.querySelectorAll(".message");
+  nodes.forEach((node, i) => {
+    const msg = state.messages[i];
+    if (!msg) return;
+    const timeEl = node.querySelector(".timestamp");
+    if (timeEl) timeEl.textContent = relativeTime(msg.at);
+  });
+}
+
+setInterval(refreshRelativeTimes, 30 * 1000);
 
 function renderPlan() {
   planList.innerHTML = "";
