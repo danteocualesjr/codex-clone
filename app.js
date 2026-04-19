@@ -206,10 +206,14 @@ function simulateAgentReply(prompt) {
   addActivity("Prompt processed", "The latest message was translated into a tool-style action.");
 }
 
-composer.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const value = promptInput.value.trim();
+function autoGrowPrompt() {
+  promptInput.style.height = "auto";
+  const next = Math.min(promptInput.scrollHeight, 220);
+  promptInput.style.height = next + "px";
+}
 
+function submitPrompt() {
+  const value = promptInput.value.trim();
   if (!value) {
     return;
   }
@@ -217,6 +221,41 @@ composer.addEventListener("submit", (event) => {
   addUserMessage(value);
   simulateAgentReply(value);
   promptInput.value = "";
+  autoGrowPrompt();
+  promptInput.focus();
+}
+
+composer.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submitPrompt();
+});
+
+promptInput.addEventListener("input", autoGrowPrompt);
+
+promptInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    submitPrompt();
+    return;
+  }
+
+  if (event.key === "Escape") {
+    if (promptInput.value.length > 0) {
+      event.preventDefault();
+      promptInput.value = "";
+      autoGrowPrompt();
+    }
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  const isSubmitCombo =
+    event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.isComposing;
+
+  if (isSubmitCombo) {
+    event.preventDefault();
+    submitPrompt();
+  }
 });
 
 runCommandButton.addEventListener("click", () => {
@@ -262,3 +301,4 @@ renderMessages();
 renderPlan();
 renderTerminal();
 renderActivity();
+autoGrowPrompt();
