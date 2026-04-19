@@ -1,19 +1,25 @@
-const initialMessages = [
-  {
-    role: "user",
-    body: "build a codex clone",
-  },
-  {
-    role: "assistant",
-    body:
-      "I’m inspecting the workspace first so I can anchor the build in what’s already here, then I’ll turn that into a working clone instead of guessing.",
-  },
-  {
-    role: "assistant",
-    body:
-      "The workspace is empty, so I’m treating this as a fresh Codex-style MVP with a chat-first center column, a plan rail, and terminal output.",
-  },
-];
+const STORAGE_KEY = "codex-session-v1";
+
+function seedMessages() {
+  const now = Date.now();
+  return [
+    { role: "user", body: "build a codex clone", at: now },
+    {
+      role: "assistant",
+      body:
+        "I’m inspecting the workspace first so I can anchor the build in what’s already here, then I’ll turn that into a working clone instead of guessing.",
+      at: now,
+    },
+    {
+      role: "assistant",
+      body:
+        "The workspace is empty, so I’m treating this as a fresh Codex-style MVP with a chat-first center column, a plan rail, and terminal output.",
+      at: now,
+    },
+  ];
+}
+
+const initialMessages = seedMessages();
 
 const planStates = [
   {
@@ -63,19 +69,57 @@ const promptInput = document.querySelector("#promptInput");
 const runCommandButton = document.querySelector("#runCommand");
 const shufflePlanButton = document.querySelector("#shufflePlan");
 const themeToggleButton = document.querySelector("#themeToggle");
+const newThreadButton = document.querySelector("#newThread");
 
 const messageTemplate = document.querySelector("#messageTemplate");
 const terminalTemplate = document.querySelector("#terminalTemplate");
 
-const state = {
-  messages: [...initialMessages],
-  plan: [...planStates],
-  terminalLines: [...terminalSeed],
-  activity: [...activitySeed],
-};
+function defaultState() {
+  return {
+    messages: seedMessages(),
+    plan: planStates.map((p) => ({ ...p })),
+    terminalLines: terminalSeed.map((line) => [...line]),
+    activity: activitySeed.map((a) => ({ ...a })),
+  };
+}
 
-function timeStamp() {
-  return new Date().toLocaleTimeString([], {
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return {
+      messages: Array.isArray(parsed.messages) ? parsed.messages : seedMessages(),
+      plan: Array.isArray(parsed.plan) ? parsed.plan : planStates.map((p) => ({ ...p })),
+      terminalLines: Array.isArray(parsed.terminalLines)
+        ? parsed.terminalLines
+        : terminalSeed.map((line) => [...line]),
+      activity: Array.isArray(parsed.activity)
+        ? parsed.activity
+        : activitySeed.map((a) => ({ ...a })),
+    };
+  } catch (_) {
+    return defaultState();
+  }
+}
+
+const state = loadState();
+
+let saveScheduled = false;
+function saveState() {
+  if (saveScheduled) return;
+  saveScheduled = true;
+  requestAnimationFrame(() => {
+    saveScheduled = false;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (_) {}
+  });
+}
+
+function formatTime(at) {
+  const d = at ? new Date(at) : new Date();
+  return d.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -88,7 +132,7 @@ function renderMessages() {
     const node = messageTemplate.content.firstElementChild.cloneNode(true);
     node.classList.add(message.role);
     node.querySelector(".author").textContent = message.role === "user" ? "You" : "Codex";
-    node.querySelector(".timestamp").textContent = timeStamp();
+    node.querySelector(".timestamp").textContent = formatTime(message.at);
     node.querySelector(".message-body").textContent = message.body;
     chatFeed.appendChild(node);
   });
@@ -140,24 +184,28 @@ function renderActivity() {
 }
 
 function addUserMessage(body) {
-  state.messages.push({ role: "user", body });
+  state.messages.push({ role: "user", body, at: Date.now() });
   renderMessages();
+  saveState();
 }
 
 function addAssistantMessage(body) {
-  state.messages.push({ role: "assistant", body });
+  state.messages.push({ role: "assistant", body, at: Date.now() });
   renderMessages();
+  saveState();
 }
 
 function addTerminalLine(prefix, text) {
   state.terminalLines.push([prefix, text]);
   renderTerminal();
+  saveState();
 }
 
 function addActivity(title, detail) {
-  state.activity.unshift({ title, detail });
+  state.activity.unshift({ title, detail, at: Date.now() });
   state.activity = state.activity.slice(0, 6);
   renderActivity();
+  saveState();
 }
 
 function syncPlan() {
@@ -167,6 +215,7 @@ function syncPlan() {
     { label: "Verify the behavior and hand off", status: "in-progress" },
   ];
   renderPlan();
+  saveState();
   addActivity("Plan refreshed", "Promoted verification to the active step.");
 }
 
@@ -185,6 +234,7 @@ function simulateAgentReply(prompt) {
       { label: "Execute and verify", status: "pending" },
     ];
     renderPlan();
+    saveState();
     addAssistantMessage("Plan updated. I regrouped the work into request, execution, and verification.");
     addActivity("Manual plan sync", "The thread issued a `/plan` command.");
     return;
@@ -265,6 +315,27 @@ runCommandButton.addEventListener("click", () => {
 });
 
 shufflePlanButton.addEventListener("click", syncPlan);
+
+function newThread() {
+  const fresh = defaultState();
+  state.messages = fresh.messages;
+  state.plan = fresh.plan;
+  state.terminalLines = fresh.terminalLines;
+  state.activity = fresh.activity;
+  renderMessages();
+  renderPlan();
+  renderTerminal();
+  renderActivity();
+  saveState();
+  addActivity("Thread reset", "Cleared chat, plan, terminal, and activity.");
+  promptInput.value = "";
+  autoGrowPrompt();
+  promptInput.focus();
+}
+
+if (newThreadButton) {
+  newThreadButton.addEventListener("click", newThread);
+}
 
 function setTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
